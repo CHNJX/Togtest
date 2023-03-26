@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class BaseModel(models.Model):
@@ -13,8 +14,9 @@ class BaseModel(models.Model):
 
 
 class Project(BaseModel):
-    name = models.CharField(max_length=255, verbose_name='项目名称', help_text='项目名称')
+    name = models.CharField(max_length=255, verbose_name='项目名称', help_text='项目名称', unique=True)
     description = models.TextField(blank=True, verbose_name='描述', help_text='描述')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='项目创建人', help_text='项目创建人')
 
     class Meta:
         verbose_name = '项目'
@@ -29,7 +31,7 @@ class Environment(BaseModel):
     input_data = models.TextField(verbose_name='输入数据', help_text='输入数据', blank=True, default='')
     headers = models.TextField(verbose_name='请求头', help_text='请求头：key1,value1;key2,value2;', blank=True, default='')
     project = models.ForeignKey('Project', on_delete=models.CASCADE, verbose_name='所属项目', help_text='所属项目')
-    base_url = models.TextField(verbose_name='请求域名', help_text='请求域名',default='')
+    base_url = models.TextField(verbose_name='请求域名', help_text='请求域名', default='')
 
     class Meta:
         verbose_name = '环境变量'
@@ -45,6 +47,7 @@ class Database(BaseModel):
     port = models.CharField(max_length=10, verbose_name='端口', help_text='端口')
     user = models.CharField(max_length=20, verbose_name='用户名', help_text='用户名')
     password = models.CharField(max_length=50, verbose_name='密码', help_text='密码')
+    database_name = models.CharField(max_length=50, verbose_name='数据库名', help_text='数据库名')
     environment = models.ForeignKey(Environment, on_delete=models.CASCADE, verbose_name='所属环境变量', help_text='所属环境变量')
 
     class Meta:
@@ -70,14 +73,15 @@ class InterfaceSuite(BaseModel):
 
 class Interface(BaseModel):
     name = models.CharField(max_length=255, verbose_name='接口名称', help_text='接口名称')
-    url = models.URLField(verbose_name='URL', help_text='URL')
+    url = models.CharField(max_length=255, verbose_name='URL', help_text='URL')
     protocol = models.IntegerField(choices=((1, 'http'), (2, 'https')), verbose_name='请求协议', help_text='请求协议')
     method = models.CharField(max_length=20, verbose_name='请求方法', help_text='请求方法')
     json_data = models.TextField(verbose_name='json请求数据', help_text='key1,value1;key2,value2;', blank=True)
     form_data = models.TextField(verbose_name='from表单数据', help_text='key1,value1;key2,value2;', blank=True)
     query_data = models.TextField(verbose_name='query数据', help_text='key1,value1;key2,value2;', blank=True)
-    headers = models.TextField(verbose_name='请求头', help_text='请求头')
-    interface_suite = models.ForeignKey(InterfaceSuite, on_delete=models.CASCADE, verbose_name='所属项目', help_text='所属项目',default=1)
+    headers = models.TextField(verbose_name='请求头', help_text='请求头', blank=True)
+    interface_suite = models.ForeignKey(InterfaceSuite, on_delete=models.CASCADE, verbose_name='所属项目', help_text='所属项目',
+                                        default=1, related_name='interfaces')
 
     class Meta:
         verbose_name = '接口'
@@ -90,9 +94,10 @@ class Interface(BaseModel):
 class Testcase(BaseModel):
     name = models.CharField(max_length=25, verbose_name='用例名称', help_text='用例名称')
     description = models.TextField(blank=True, verbose_name='用例描述', help_text='用例描述')
-    input_data = models.TextField(verbose_name='输入数据', help_text='输入数据')
+    input_data = models.TextField(verbose_name='输入数据', help_text='输入数据', blank=True)
+    is_gen = models.IntegerField(verbose_name="是否已经生成用例", help_text='是否已经生成用例 1:未生成 2：已生成', blank=True, default=1)
+    case_file_name = models.CharField(max_length=50, verbose_name="用例文件名", help_text="用例文件名", blank=True)
     interface = models.ForeignKey(Interface, on_delete=models.CASCADE, verbose_name='断言', help_text='断言')
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name='所属项目', help_text='所属项目')
 
     class Meta:
         verbose_name = '用例'
@@ -120,14 +125,14 @@ class Assertion(BaseModel):
 
 
 class TestResult(BaseModel):
-    case_id = models.IntegerField(verbose_name='用例ID', help_text='关联的测试用例ID')
+    case_id = models.IntegerField(verbose_name='关联的测试用例',help_text='关联的测试用例')
     start_time = models.DateTimeField(auto_now_add=True, verbose_name='开始时间', help_text='测试执行开始时间')
     end_time = models.DateTimeField(auto_now=True, verbose_name='结束时间', help_text='测试执行结束时间')
-    result = models.BooleanField(verbose_name='测试结果', help_text='测试用例执行结果，True表示通过，False表示失败')
-    response_content = models.TextField(blank=True, verbose_name='响应内容', help_text='接口返回的响应内容')
+    result = models.BooleanField(verbose_name='测试结果', help_text='测试用例执行结果，True表示通过，False表示失败', default=True, blank=True)
+    response_content = models.TextField(blank=True, verbose_name='响应内容', help_text='接口返回的响应内容',null=True)
     response_code = models.IntegerField(blank=True, null=True, verbose_name='响应状态码', help_text='接口返回的响应状态码')
-    response_headers = models.TextField(blank=True, verbose_name='响应头', help_text='接口返回的响应头')
-    duration = models.FloatField(verbose_name='执行时长', help_text='测试用例执行所花费的时间')
+    response_headers = models.TextField(blank=True, verbose_name='响应头', help_text='接口返回的响应头',null=True)
+    duration = models.FloatField(verbose_name='执行时长', help_text='测试用例执行所花费的时间',null=True,blank=True)
 
     class Meta:
         verbose_name = '用例结果'
@@ -136,18 +141,12 @@ class TestResult(BaseModel):
     def __str__(self):
         return f"Test Result for Test Case ID {self.case_id}"
 
-
-class User(BaseModel):
-    username = models.CharField(max_length=255, unique=True, verbose_name='用户名', help_text='系统用户的登录用户名')
-    password = models.CharField(max_length=255, verbose_name='密码', help_text='系统用户的登录密码')
-    email = models.EmailField(unique=True, verbose_name='邮箱', help_text='系统用户的电子邮箱')
-
     class Meta:
-        verbose_name = '系统用户'
-        verbose_name_plural = '系统用户'
+        verbose_name = '用例结果'
+        verbose_name_plural = '用例结果'
 
     def __str__(self):
-        return self.username
+        return f"Test Result for Test Case ID {self.case_id}"
 
 
 class ProjectMember(BaseModel):

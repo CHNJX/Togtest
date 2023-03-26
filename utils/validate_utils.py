@@ -3,9 +3,10 @@
 # @Author   :CHNJX
 # @File     :validate_utils.py
 # @Desc     :自定义字段校验方法
+from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from api.models import Environment,Project
+from api.models import Environment, Project, InterfaceSuite, Interface
 
 
 class ValidateDataIsExist:
@@ -21,4 +22,16 @@ class ValidateDataIsExist:
         if self.model_name == 'project':
             if not Project.objects.filter(id=pk).exists():
                 raise serializers.ValidationError('该项目不存在')
+        elif self.model_name == 'user':
+            if not User.objects.filter(id=pk).exists():
+                raise serializers.ValidationError('该用户不存在')
+        elif self.model_name == 'environment':
+            if not User.objects.filter(id=pk).exists():
+                raise serializers.ValidationError('该环境不存在')
+        elif self.model_name == 'interface_suite':
+            if not InterfaceSuite.objects.filter(id=pk).exists():
+                raise serializers.ValidationError('该接口集不存在')
+        elif self.model_name == 'interface':
+            if not Interface.objects.filter(id=pk).exists():
+                raise serializers.ValidationError('该接口不存在')
 
