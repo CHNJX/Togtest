@@ -5,6 +5,8 @@
 # @Desc     :测试用例执行
 import os
 import subprocess
+
+from api.models import Project
 from api.utils.template import Template
 
 
@@ -30,3 +32,8 @@ def generate_testcase(testcase_data, file_path):
     template = Template()
     content = template.get_content('testcase.tpl', **testcase_data)
     write(content, file_path)
+
+
+def set_test_result():
+    project = Project.objects.all()
+    print('')

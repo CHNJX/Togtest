@@ -28,6 +28,7 @@ from utils.generate_data import generate_requests_data, generate_testcase_reques
 
 
 class ProjectView(CustomModelViewSet):
+    permission_classes = [permissions.AllowAny]
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     pagination_class = PageNumberPagination
