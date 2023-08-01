@@ -97,7 +97,7 @@ class Testcase(BaseModel):
     input_data = models.TextField(verbose_name='输入数据', help_text='输入数据', blank=True)
     is_gen = models.IntegerField(verbose_name="是否已经生成用例", help_text='是否已经生成用例 1:未生成 2：已生成', blank=True, default=1)
     case_file_name = models.CharField(max_length=50, verbose_name="用例文件名", help_text="用例文件名", blank=True)
-    interface = models.ForeignKey(Interface, on_delete=models.CASCADE, verbose_name='断言', help_text='断言')
+    interface = models.ForeignKey(Interface, on_delete=models.CASCADE, verbose_name='所属接口', help_text='所属接口')
 
     class Meta:
         verbose_name = '用例'
@@ -114,6 +114,7 @@ class Assertion(BaseModel):
                                                 'schema: schema mach')
     expected_value = models.TextField(verbose_name='预期值', help_text='断言预期值')
     actual_value = models.TextField(verbose_name='实际值', help_text='响应实际值表达式')
+    reason = models.CharField(max_length=50, verbose_name='断言描述', help_text='断言描述', null=True, blank=True)
     testcase = models.ForeignKey(Testcase, on_delete=models.CASCADE, verbose_name='所属用例', help_text='所属用例id')
 
     class Meta:
@@ -125,14 +126,14 @@ class Assertion(BaseModel):
 
 
 class TestResult(BaseModel):
-    case_id = models.IntegerField(verbose_name='关联的测试用例',help_text='关联的测试用例')
+    case_id = models.IntegerField(verbose_name='关联的测试用例', help_text='关联的测试用例')
     start_time = models.DateTimeField(auto_now_add=True, verbose_name='开始时间', help_text='测试执行开始时间')
     end_time = models.DateTimeField(auto_now=True, verbose_name='结束时间', help_text='测试执行结束时间')
     result = models.BooleanField(verbose_name='测试结果', help_text='测试用例执行结果，True表示通过，False表示失败', default=True, blank=True)
-    response_content = models.TextField(blank=True, verbose_name='响应内容', help_text='接口返回的响应内容',null=True)
+    response_content = models.TextField(blank=True, verbose_name='响应内容', help_text='接口返回的响应内容', null=True)
     response_code = models.IntegerField(blank=True, null=True, verbose_name='响应状态码', help_text='接口返回的响应状态码')
-    response_headers = models.TextField(blank=True, verbose_name='响应头', help_text='接口返回的响应头',null=True)
-    duration = models.FloatField(verbose_name='执行时长', help_text='测试用例执行所花费的时间',null=True,blank=True)
+    response_headers = models.TextField(blank=True, verbose_name='响应头', help_text='接口返回的响应头', null=True)
+    duration = models.FloatField(verbose_name='执行时长', help_text='测试用例执行所花费的时间', null=True, blank=True)
 
     class Meta:
         verbose_name = '用例结果'

@@ -269,9 +269,10 @@ class TestcaseSerializer(serializers.ModelSerializer):
                 "format": "%Y年%m月%d日 %H:%M:%S"
             },
             'name': {
-                'error_messages': {'required': '测试用例不能为空'}
+                'error_messages': {'required': '用例名称不能为空'}
             }
         }
 
         model = Testcase
         exclude = ('update_time',)
+

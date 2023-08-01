@@ -4,14 +4,31 @@
 # @File     :testcase_utils.py
 # @Desc     :测试用例执行
 import os
+import re
 import subprocess
-
-from api.models import Project
+from httprunner import HttpRunner
+from api.models import Project, TestResult
 from api.utils.template import Template
+import pytest
+from api_driver.api_driver import ApiDriver
+
+abs_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + '/report'
 
 
 def execute_testcase(testcase_file: str):
-    subprocess.call(f'pytest --ds=test.settings -v -s {testcase_file}', shell=True)
+    res = re.search('_(.*)?_', testcase_file)
+    tc_id = res.group(1)
+    ad = ApiDriver()
+    res = ad.run_tests(testcase_file)
+    ad.generate_html_report(res, f'{abs_dir}/{tc_id}.html')
+    save_result(tc_id, res)
+
+
+def save_result(case_id: int, result: dict):
+    res = True
+    if result['fail_count']:
+        res = False
+    TestResult.objects.update_or_create(case_id=case_id, result=res)
 
 
 def write(content, file_path):

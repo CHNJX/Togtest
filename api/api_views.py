@@ -28,7 +28,7 @@ from utils.generate_data import generate_requests_data, generate_testcase_reques
 
 
 class ProjectView(CustomModelViewSet):
-    permission_classes = [permissions.AllowAny]
+    # permission_classes = [permissions.AllowAny]
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     pagination_class = PageNumberPagination
@@ -218,7 +218,7 @@ class TestcaseView(CustomModelViewSet):
     def execute(self, request, *args, **kwargs):
         """执行测试用例"""
         testcase = self.get_object()
-        testcase_dir = f"{os.path.dirname(__file__)}/testcase"
+        testcase_dir = f"{os.path.dirname(os.path.dirname(__file__))}/testcase"
         # 判断是否已经生成过用例 生成过就直接运行
         if testcase.is_gen == 2:
             case_name = testcase.case_file_name
@@ -234,7 +234,7 @@ class TestcaseView(CustomModelViewSet):
         request_data = generate_testcase_request_data(interface_data, testcase_data_dict)
 
         # 生成测试用例
-        case_file_name = f"{str(int(time.time()))}.py"
+        case_file_name = f"{testcase.id}_{str(int(time.time()))}.py"
         testcase_data = {
             "case": testcase.id,
             "case_name": testcase.name,
@@ -246,5 +246,5 @@ class TestcaseView(CustomModelViewSet):
         testcase.is_gen = 2
         testcase.case_file_name = f"test_{case_file_name}"
         testcase.save()
-        execute_testcase(testcase_file)
-        return JsonResponse(data={}, msg='成功', status=status.HTTP_200_OK)
+        result = execute_testcase(testcase_file)
+        return JsonResponse(data={}, msg=result, status=status.HTTP_200_OK)
