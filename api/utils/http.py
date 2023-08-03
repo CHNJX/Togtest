@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 import os
@@ -51,19 +53,18 @@ class Http:
             self.headers.update(headers)
         try:
             resp = requests.request(method=method, url=self.base_uri + url, headers=self.headers, **kwargs)
-            self.logger.info(f'请求结果：{resp.text}')
+            # self.logger.info(f'请求结果：{resp.text}')
         except requests.exceptions.RequestException as e:
             self.logger.error("请求接口错误: " + e.__str__())
             raise e
         json_data = {
-            'request': resp.request,
             'status_code': resp.status_code,
             'response_time': resp.elapsed.total_seconds(),
-            'response_headers': resp.headers._store,
         }
         try:
             if return_json:
                 json_data['response_body'] = resp.json()
+                self.logger.info(f'请求结果：{json.dumps(json_data)}')
             else:
                 return resp
         except ValueError:

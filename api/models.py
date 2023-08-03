@@ -109,11 +109,9 @@ class Testcase(BaseModel):
 
 class Assertion(BaseModel):
     assertion_type = models.CharField(max_length=20, verbose_name='断言方式',
-                                      help_text='断言方式：eq：equals、in：in、re：正则匹配、'
-                                                'lt：less than、gt：greater than'
+                                      help_text='断言方式：json、re：正则匹配、'
                                                 'schema: schema mach')
-    expected_value = models.TextField(verbose_name='预期值', help_text='断言预期值')
-    actual_value = models.TextField(verbose_name='实际值', help_text='响应实际值表达式')
+    expression = models.TextField(verbose_name='断言表达式', help_text='断言表达式')
     reason = models.CharField(max_length=50, verbose_name='断言描述', help_text='断言描述', null=True, blank=True)
     testcase = models.ForeignKey(Testcase, on_delete=models.CASCADE, verbose_name='所属用例', help_text='所属用例id')
 

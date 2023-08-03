@@ -1,6 +1,7 @@
-from api.testcase.test_base import TestBase
+from testcase.test_base import TestBase
 from api.utils.http import Http
 import allure
+from jsonpath import jsonpath
 
 
 class Test{{case}}(TestBase):
@@ -13,10 +14,10 @@ class Test{{case}}(TestBase):
         req_data = {{request_data}}
         res = self.http.req(**req_data)
         {% for assertion in assertions %}
-        self.logger.info("断言描述：",{{assertion.reason}})
-        self.logger.info("assert str(jsonpath(resp, '$..{{assertion.actual_value}}')[0]) == '{{assertion.expected_value}}'")
-        {%- if assertion.assertion_type=='eq' -%}
-        assert str(jsonpath(resp, '$..{{assertion.actual_value}}')[0]) == "{{assertion.expected_value}}"
+        self.logger.info('断言描述：{{assertion.reason}}')
+        self.logger.info('assert {{assertion.expression}}')
+        {% if assertion.assertion_type == 'json' %}
+        assert {{assertion.expression}}
         {% endif %}
         {% endfor %}
 

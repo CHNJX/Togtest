@@ -235,6 +235,11 @@ class TestcaseView(CustomModelViewSet):
         testcase = self.get_object()
         # 断言数据
         assertions = self.get_serializer(testcase).data['assertion_set']
+        for assertion in assertions:
+            if assertion['assertion_type'] == 'json':
+                assertion_list = assertion['expression'].split(' ')
+                assertion_list[0] = f'jsonpath(res, "{assertion_list[0]}")[0]'
+                assertion['expression'] = ' '.join(assertion_list)
         testcase_dir = f"{os.path.dirname(os.path.dirname(__file__))}/testcase"
         # 判断是否已经生成过用例 生成过就直接运行
         if testcase.is_gen == 2:
