@@ -11,4 +11,12 @@ class Test{{case}}(TestBase):
     def test_{{case}}(self):
         self.logger.info("测试用例：{{case_name}}；描述: {{description}}")
         req_data = {{request_data}}
-        return self.http.req(**req_data)
+        res = self.http.req(**req_data)
+        {% for assertion in assertions %}
+        self.logger.info("断言描述：",{{assertion.reason}})
+        self.logger.info("assert str(jsonpath(resp, '$..{{assertion.actual_value}}')[0]) == '{{assertion.expected_value}}'")
+        {%- if assertion.assertion_type=='eq' -%}
+        assert str(jsonpath(resp, '$..{{assertion.actual_value}}')[0]) == "{{assertion.expected_value}}"
+        {% endif %}
+        {% endfor %}
+

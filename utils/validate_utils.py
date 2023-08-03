@@ -34,4 +34,7 @@ class ValidateDataIsExist:
         elif self.model_name == 'interface':
             if not Interface.objects.filter(id=pk).exists():
                 raise serializers.ValidationError('该接口不存在')
+        elif self.model_name == 'testcase':
+            if not Interface.objects.filter(id=pk).exists():
+                raise serializers.ValidationError('该用例不存在')
 

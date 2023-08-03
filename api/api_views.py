@@ -11,11 +11,8 @@ from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.viewsets import GenericViewSet
 
-from api.models import Project, Environment, ProjectMember, Database, InterfaceSuite, Interface, Testcase
-from api.serializer import ProjectSerializer, EnvironmentSerializer, EnvironmentSelectSerializer, \
-    ProjectMemberSerializer, PMMemberListSerializer, PMProjectListSerializer, DatabaseSerializer, \
-    InterfaceSuiteSerializer, InterfaceSuiteSelectSerializer, InterfaceSerializer, SuiteInterfaceListSerializer, \
-    TestcaseSerializer
+from api.models import Assertion
+from api.serializer import *
 from api.utils.custom_json_response import JsonResponse
 from api.utils.custom_pagination import PageNumberPagination
 from api.utils.custom_view_set import CustomModelViewSet
@@ -28,7 +25,7 @@ from utils.generate_data import generate_requests_data, generate_testcase_reques
 
 
 class ProjectView(CustomModelViewSet):
-    # permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny]
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     pagination_class = PageNumberPagination
@@ -214,10 +211,30 @@ class TestcaseView(CustomModelViewSet):
     serializer_class = TestcaseSerializer
     pagination_class = PageNumberPagination
 
+    def create(self, request, *args, **kwargs):
+        # 反序列化前端发送的JSON数据
+        assertions_data = request.data.pop('assertions', [])
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # 从序列化器中获取测试用例数据
+        testcase_data = serializer.validated_data
+
+        testcase = Testcase.objects.create(**testcase_data)
+
+        # 创建关联的断言
+        for assertion_data in assertions_data:
+            Assertion.objects.create(testcase=testcase, **assertion_data)
+
+        headers = self.get_success_headers(serializer.data)
+        return JsonResponse(serializer.data, status=201, headers=headers)
+
     @action(methods=['GET'], detail=True)
     def execute(self, request, *args, **kwargs):
         """执行测试用例"""
         testcase = self.get_object()
+        # 断言数据
+        assertions = self.get_serializer(testcase).data['assertion_set']
         testcase_dir = f"{os.path.dirname(os.path.dirname(__file__))}/testcase"
         # 判断是否已经生成过用例 生成过就直接运行
         if testcase.is_gen == 2:
@@ -233,13 +250,17 @@ class TestcaseView(CustomModelViewSet):
         testcase_data_dict = convert_to_dict(testcase.input_data)
         request_data = generate_testcase_request_data(interface_data, testcase_data_dict)
 
+
+
         # 生成测试用例
         case_file_name = f"{testcase.id}_{str(int(time.time()))}.py"
+
         testcase_data = {
             "case": testcase.id,
             "case_name": testcase.name,
             "description": testcase.description,
-            "request_data": request_data
+            "request_data": request_data,
+            "assertions": assertions
         }
         testcase_file = f"{testcase_dir}/test_{case_file_name}"
         generate_testcase(testcase_data, testcase_file)

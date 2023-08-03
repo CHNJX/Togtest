@@ -6,7 +6,7 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from api.models import Project, Environment, Database, ProjectMember, InterfaceSuite, Interface, Testcase
+from api.models import Project, Environment, Database, ProjectMember, InterfaceSuite, Interface, Testcase, Assertion
 from utils.validate_utils import ValidateDataIsExist
 
 
@@ -255,12 +255,40 @@ class SuiteInterfaceListSerializer(serializers.ModelSerializer):
         fields = ('name', 'id', 'interfaces')
 
 
+class AssertionsSerializer(serializers.ModelSerializer):
+    testcase = serializers.SlugRelatedField(help_text="所属用例", label="所属用例", read_only=True, slug_field="name")
+    testcase_id = serializers.IntegerField(help_text="所属用例id", label="所属用例id",
+                                           error_messages={"required": "所属用例不能为空"},
+                                           validators=[ValidateDataIsExist('testcase')])
+
+    class Meta:
+        extra_kwargs = {
+            'create_time': {
+                'read_only': True,
+                "format": "%Y年%m月%d日 %H:%M:%S"
+            },
+            'expected_value': {
+                'error_messages': {'required': '预期值不能为空'}
+            },
+            'actual_value': {
+                'error_messages': {'required': '实际值表达式不能为空'}
+            },
+            'assertion_type': {
+                'error_messages': {'required': '断言类型不能为空'}
+            }
+        }
+
+        model = Assertion
+        exclude = ('update_time',)
+
+
 # 测试用例
 class TestcaseSerializer(serializers.ModelSerializer):
     interface = serializers.SlugRelatedField(help_text="所属接口", label="所属接口", read_only=True, slug_field="name")
     interface_id = serializers.IntegerField(help_text="所属接口id", label="所属接口id",
                                             error_messages={"required": "所属接口不能为空"},
                                             validators=[ValidateDataIsExist('interface')])
+    assertion_set = AssertionsSerializer(help_text='断言数据', label='断言数据', many=True, read_only=True)
 
     class Meta:
         extra_kwargs = {
@@ -276,3 +304,10 @@ class TestcaseSerializer(serializers.ModelSerializer):
         model = Testcase
         exclude = ('update_time',)
 
+
+class TestcaseAssertsSerializer(serializers.ModelSerializer):
+    assertions = AssertionsSerializer(help_text='断言数据', label='断言数据', many=True, read_only=True)
+
+    class Meta:
+        model = InterfaceSuite
+        fields = ('name', 'id', 'interfaces')

@@ -5,11 +5,8 @@
 # @Desc     :测试用例执行
 import os
 import re
-import subprocess
-from httprunner import HttpRunner
 from api.models import Project, TestResult
 from api.utils.template import Template
-import pytest
 from api_driver.api_driver import ApiDriver
 
 abs_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + '/report'

@@ -16,7 +16,7 @@ class BaseModel(models.Model):
 class Project(BaseModel):
     name = models.CharField(max_length=255, verbose_name='项目名称', help_text='项目名称', unique=True)
     description = models.TextField(blank=True, verbose_name='描述', help_text='描述')
-    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='项目创建人', help_text='项目创建人')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='项目创建人', help_text='项目创建人', null=True,blank=True)
 
     class Meta:
         verbose_name = '项目'
