@@ -96,8 +96,10 @@ class Testcase(BaseModel):
     description = models.TextField(blank=True, verbose_name='用例描述', help_text='用例描述')
     input_data = models.TextField(verbose_name='输入数据', help_text='输入数据', blank=True)
     is_gen = models.IntegerField(verbose_name="是否已经生成用例", help_text='是否已经生成用例 1:未生成 2：已生成', blank=True, default=1)
-    case_file_name = models.CharField(max_length=50, verbose_name="用例文件名", help_text="用例文件名", blank=True)
+    case_file_name = models.CharField(max_length=50, verbose_name="用例文件名", help_text="用例文件名", blank=True,null=None)
+    test_data = models.CharField(max_length=50, verbose_name="测试数据文件名", help_text="测试数据文件名", blank=True,null=None)
     interface = models.ForeignKey(Interface, on_delete=models.CASCADE, verbose_name='所属接口', help_text='所属接口')
+
 
     class Meta:
         verbose_name = '用例'

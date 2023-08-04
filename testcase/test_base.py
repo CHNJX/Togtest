@@ -7,5 +7,3 @@ from api_driver.testcase_mixin import TestcaseMixin
 class TestBase(TestcaseMixin):
     base_dir = os.path.join(os.path.dirname(__file__), '..')
     logger = Logger.getLogger("testcase", base_dir)
-
-

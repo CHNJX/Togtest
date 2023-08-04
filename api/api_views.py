@@ -11,6 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.viewsets import GenericViewSet
 
+from api.forms import TestDataUploadForm
 from api.models import Assertion
 from api.serializer import *
 from api.utils.custom_json_response import JsonResponse
@@ -255,8 +256,6 @@ class TestcaseView(CustomModelViewSet):
         testcase_data_dict = convert_to_dict(testcase.input_data)
         request_data = generate_testcase_request_data(interface_data, testcase_data_dict)
 
-
-
         # 生成测试用例
         case_file_name = f"{testcase.id}_{str(int(time.time()))}.py"
 
@@ -274,3 +273,21 @@ class TestcaseView(CustomModelViewSet):
         testcase.save()
         result = execute_testcase(testcase_file)
         return JsonResponse(data={}, msg=result, status=status.HTTP_200_OK)
+
+    @action(methods=['POST'], detail=True)
+    def upload_test_data(self, request, *args, **kwargs):
+        testcase = self.get_object()
+        form = TestDataUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            # 保存上传的文件
+            uploaded_file = request.FILES['file']
+            # 保存上传的文件
+            test_data_file = str(testcase.id) + '.' + uploaded_file.name.split('.')[-1]
+            with open('test_data/' + test_data_file, 'wb+') as destination:
+                for chunk in uploaded_file.chunks():
+                    destination.write(chunk)
+            testcase.is_gen = 1
+            testcase.test_data = test_data_file
+            testcase.save()
+            return JsonResponse(data={}, msg='上传成功', status=status.HTTP_200_OK)
+        return JsonResponse(data={}, msg='上传失败，数据格式异常', status=status.HTTP_400_BAD_REQUEST)
