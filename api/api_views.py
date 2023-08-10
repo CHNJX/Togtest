@@ -212,23 +212,85 @@ class TestcaseView(CustomModelViewSet):
     serializer_class = TestcaseSerializer
     pagination_class = PageNumberPagination
 
+    def handle_upload_test_data(self, testcase, uploaded_file):
+        """
+        处理上传的测试数据文件
+        """
+        test_data_file = f"{testcase.id}.{uploaded_file.name.split('.')[-1]}"
+        test_data_path = os.path.join('test_data', test_data_file)
+        with open(test_data_path, 'wb+') as destination:
+            for chunk in uploaded_file.chunks():
+                destination.write(chunk)
+        testcase.is_gen = True
+        testcase.test_data = test_data_file
+        testcase.save()
+
     def create(self, request, *args, **kwargs):
-        # 反序列化前端发送的JSON数据
+        """
+        创建测试用例
+        """
+        case_type = self.request.query_params.get('type')
+
+        if case_type == 'ddt':
+            return self._create_ddt_testcase(request)
+        else:
+            return self._create_standard_testcase(request)
+
+    def _create_ddt_testcase(self, request):
+        """
+        处理 DDT 类型的测试用例创建
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        testcase_data = serializer.validated_data
+
+        # 创建测试用例
+        testcase = Testcase.objects.create(**testcase_data)
+
+        # 处理上传用例数据文件
+        form = TestDataUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded_file = request.FILES.get('file')
+            if uploaded_file:
+                self.handle_upload_test_data(testcase, uploaded_file)
+
+        return JsonResponse(serializer.data, msg='创建成功', status=status.HTTP_201_CREATED)
+
+    def _create_standard_testcase(self, request):
+        """
+        处理标准类型的测试用例创建
+        """
         assertions_data = request.data.pop('assertions', [])
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        # 从序列化器中获取测试用例数据
         testcase_data = serializer.validated_data
 
+        # 创建测试用例
         testcase = Testcase.objects.create(**testcase_data)
 
         # 创建关联的断言
-        for assertion_data in assertions_data:
-            Assertion.objects.create(testcase=testcase, **assertion_data)
+        Assertion.objects.bulk_create([
+            Assertion(testcase=testcase, **assertion_data)
+            for assertion_data in assertions_data
+        ])
 
-        headers = self.get_success_headers(serializer.data)
-        return JsonResponse(serializer.data, status=201, headers=headers)
+        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(methods=['POST'], detail=True)
+    def upload_test_data(self, request, *args, **kwargs):
+        """
+        上传测试数据文件
+        """
+        testcase = self.get_object()
+        form = TestDataUploadForm(request.POST, request.FILES)
+
+        if not form.is_valid():
+            return JsonResponse(data={}, msg='上传失败，数据格式异常', status=status.HTTP_400_BAD_REQUEST)
+
+        uploaded_file = request.FILES['file']
+        self.handle_upload_test_data(testcase, uploaded_file)
+
+        return JsonResponse(data={}, msg='上传成功', status=status.HTTP_200_OK)
 
     @action(methods=['GET'], detail=True)
     def execute(self, request, *args, **kwargs):
@@ -273,21 +335,3 @@ class TestcaseView(CustomModelViewSet):
         testcase.save()
         result = execute_testcase(testcase_file)
         return JsonResponse(data={}, msg=result, status=status.HTTP_200_OK)
-
-    @action(methods=['POST'], detail=True)
-    def upload_test_data(self, request, *args, **kwargs):
-        testcase = self.get_object()
-        form = TestDataUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            # 保存上传的文件
-            uploaded_file = request.FILES['file']
-            # 保存上传的文件
-            test_data_file = str(testcase.id) + '.' + uploaded_file.name.split('.')[-1]
-            with open('test_data/' + test_data_file, 'wb+') as destination:
-                for chunk in uploaded_file.chunks():
-                    destination.write(chunk)
-            testcase.is_gen = 1
-            testcase.test_data = test_data_file
-            testcase.save()
-            return JsonResponse(data={}, msg='上传成功', status=status.HTTP_200_OK)
-        return JsonResponse(data={}, msg='上传失败，数据格式异常', status=status.HTTP_400_BAD_REQUEST)

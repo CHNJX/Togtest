@@ -51,3 +51,5 @@ def generate_testcase(testcase_data, file_path):
 def set_test_result():
     project = Project.objects.all()
     print('')
+
+
