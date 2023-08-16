@@ -3,6 +3,7 @@
 # @Author   :CHNJX
 # @File     :api_views.py
 # @Desc     :项目视图
+import json
 import os
 import time
 
@@ -18,7 +19,7 @@ from api.utils.custom_json_response import JsonResponse
 from api.utils.custom_pagination import PageNumberPagination
 from api.utils.custom_view_set import CustomModelViewSet
 from api.utils.http import Http
-from api.utils.testcase_utils import execute_testcase, generate_testcase
+from api.utils.testcase_utils import execute_testcase, generate_testcase, generate_assert_expression, create_pytest_case
 
 # 项目视图
 from utils.database_conn import DatabaseConn
@@ -240,12 +241,19 @@ class TestcaseView(CustomModelViewSet):
         """
         处理 DDT 类型的测试用例创建
         """
+        assertions_data = request.data.pop('assertions', [])
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         testcase_data = serializer.validated_data
 
         # 创建测试用例
         testcase = Testcase.objects.create(**testcase_data)
+
+        # 创建关联的断言
+        Assertion.objects.bulk_create([
+            Assertion(testcase=testcase, **json.loads(assertion_data))
+            for assertion_data in assertions_data
+        ])
 
         # 处理上传用例数据文件
         form = TestDataUploadForm(request.POST, request.FILES)
@@ -298,11 +306,7 @@ class TestcaseView(CustomModelViewSet):
         testcase = self.get_object()
         # 断言数据
         assertions = self.get_serializer(testcase).data['assertion_set']
-        for assertion in assertions:
-            if assertion['assertion_type'] == 'json':
-                assertion_list = assertion['expression'].split(' ')
-                assertion_list[0] = f'jsonpath(res, "{assertion_list[0]}")[0]'
-                assertion['expression'] = ' '.join(assertion_list)
+        # generate_assert_expression(assertions)
         testcase_dir = f"{os.path.dirname(os.path.dirname(__file__))}/testcase"
         # 判断是否已经生成过用例 生成过就直接运行
         if testcase.is_gen == 2:
@@ -310,28 +314,10 @@ class TestcaseView(CustomModelViewSet):
             if os.path.exists(f"{testcase_dir}/{case_name}"):
                 execute_testcase(f"{testcase_dir}/{case_name}")
                 return JsonResponse(data={}, msg='成功', status=status.HTTP_200_OK)
-        interface_instance = testcase.interface
         env_instance = Environment.objects.get(id=request.query_params['env_id'])
-        # 拿到接口的请求数据
-        interface_data = generate_requests_data(interface_instance, env_instance)
-        # 转换用例请求参数
-        testcase_data_dict = convert_to_dict(testcase.input_data)
-        request_data = generate_testcase_request_data(interface_data, testcase_data_dict)
-
-        # 生成测试用例
-        case_file_name = f"{testcase.id}_{str(int(time.time()))}.py"
-
-        testcase_data = {
-            "case": testcase.id,
-            "case_name": testcase.name,
-            "description": testcase.description,
-            "request_data": request_data,
-            "assertions": assertions
-        }
-        testcase_file = f"{testcase_dir}/test_{case_file_name}"
-        generate_testcase(testcase_data, testcase_file)
-        testcase.is_gen = 2
-        testcase.case_file_name = f"test_{case_file_name}"
-        testcase.save()
+        testcase_file = create_pytest_case(assertions, env_instance, testcase, testcase_dir)
         result = execute_testcase(testcase_file)
         return JsonResponse(data={}, msg=result, status=status.HTTP_200_OK)
+
+
+

@@ -5,9 +5,13 @@
 # @Desc     :测试用例执行
 import os
 import re
-from api.models import Project, TestResult
+import time
+
+from api.models import Project, TestResult, Environment, Testcase, Assertion
 from api.utils.template import Template
 from api_driver.api_driver import ApiDriver
+
+from utils.generate_data import generate_requests_data, convert_to_dict, generate_testcase_request_data
 
 abs_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + '/report'
 
@@ -44,12 +48,43 @@ def write(content, file_path):
 
 def generate_testcase(testcase_data, file_path):
     template = Template()
-    content = template.get_content('testcase.tpl', **testcase_data)
+    if testcase_data['test_data_file']:
+        content = template.get_content('ddt_testcase.tpl', **testcase_data)
+    else:
+        content = template.get_content('testcase.tpl', **testcase_data)
     write(content, file_path)
 
 
-def set_test_result():
-    project = Project.objects.all()
-    print('')
+def generate_assert_expression(assertions):
+    for assertion in assertions:
+        if assertion['assertion_type'] == 'json':
+            assertion_list = assertion['expression'].split(' ')
+            assertion_list[0] = f'jsonpath(res, "{assertion_list[0]}")[0]'
+            assertion['expression'] = ' '.join(assertion_list)
+
+
+def create_pytest_case(assertions: Assertion, env_instance: Environment, testcase: Testcase, testcase_dir: str):
+    interface_instance = testcase.interface
+    # 拿到接口的请求数据
+    interface_data = generate_requests_data(interface_instance, env_instance)
+    # 转换用例请求参数
+    testcase_data_dict = convert_to_dict(testcase.input_data)
+    request_data = generate_testcase_request_data(interface_data, testcase_data_dict)
+    # 生成测试用例
+    case_file_name = f"{testcase.id}_{str(int(time.time()))}.py"
+    testcase_data = {
+        "case": testcase.id,
+        "case_name": testcase.name,
+        "description": testcase.description,
+        "request_data": request_data,
+        "assertions": assertions,
+        "test_data_file": testcase.test_data
+    }
+    testcase_file = f"{testcase_dir}/test_{case_file_name}"
+    generate_testcase(testcase_data, testcase_file)
+    testcase.is_gen = 2
+    testcase.case_file_name = f"test_{case_file_name}"
+    testcase.save()
+    return testcase_file
 
 

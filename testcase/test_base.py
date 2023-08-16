@@ -2,6 +2,7 @@ import os
 
 from api_driver.utils.service_logger import Logger
 from api_driver.testcase_mixin import TestcaseMixin
+from jsonpath import jsonpath
 
 
 class TestBase(TestcaseMixin):
@@ -22,6 +23,7 @@ class TestBase(TestcaseMixin):
                 self.replace_formal_dict_2_act(v, act_dict)
             elif isinstance(v, list):
                 self.replace_formal_list_2_act(v, act_dict)
+        return formal_dict
 
     def replace_formal_list_2_act(self, formal_dict: list, act_dict: dict):
         for index, v in enumerate(formal_dict):
@@ -31,3 +33,15 @@ class TestBase(TestcaseMixin):
                 self.replace_formal_dict_2_act(v, act_dict)
             elif isinstance(v, list):
                 self.replace_formal_list_2_act(v, act_dict)
+
+    def get_assert_res(self, assertion_expression, res, act_data, assert_type):
+        expression = ''
+        if assert_type == 'json':
+            assertion_list = assertion_expression.split(' ')
+            for index, ass in enumerate(assertion_list):
+                assertion_list[index] = str(self.replace_formal_str_2_act(ass, act_data))
+            assertion_list[0] = str(jsonpath(res, assertion_list[0])[0])
+            expression = ' '.join(assertion_list)
+
+        result = eval(expression)
+        return result
