@@ -19,11 +19,11 @@ from api.utils.custom_json_response import JsonResponse
 from api.utils.custom_pagination import PageNumberPagination
 from api.utils.custom_view_set import CustomModelViewSet
 from api.utils.http import Http
-from api.utils.testcase_utils import execute_testcase, generate_testcase, generate_assert_expression, create_pytest_case
+from api.utils.testcase_utils import execute_testcase, create_pytest_case
 
 # 项目视图
 from utils.database_conn import DatabaseConn
-from utils.generate_data import generate_requests_data, generate_testcase_request_data, convert_to_dict
+from utils.generate_data import generate_requests_data
 
 
 class ProjectView(CustomModelViewSet):

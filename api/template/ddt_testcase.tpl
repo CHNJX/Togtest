@@ -21,6 +21,6 @@ class Test{{case}}(TestBase):
         self.logger.info('断言描述：{{assertion.reason}}')
         self.logger.info('assert {{assertion.expression}}')
         {% if assertion.assertion_type == 'json' %}
-        assert self.get_assert_res({{assertion.expression}},res,test_data,'json')
+        assert self.get_assert_res('{{assertion.expression}}',res,test_data,'json')
         {% endif %}
         {% endfor %}
