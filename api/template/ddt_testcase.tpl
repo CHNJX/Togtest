@@ -18,9 +18,10 @@ class Test{{case}}(TestBase):
         req_data = self.replace_formal_dict_2_act({{request_data}},test_data)
         res = self.http.req(**req_data)
         {% for assertion in assertions %}
-        self.logger.info('断言描述：{{assertion.reason}}')
-        self.logger.info('assert {{assertion.expression}}')
         {% if assertion.assertion_type == 'json' %}
-        assert self.get_assert_res('{{assertion.expression}}',res,test_data,'json')
+        assert_data = self.get_assert_data('{{assertion.expression}}',res,test_data,'json')
+        self.logger.info(f'断言描述：{self.replace_formal_str_2_act("{{assertion.reason}}", test_data)}')
+        self.logger.info(f'assert {assert_data["expect_expression"]} == {assert_data["actual"]}')
+        assert assert_data['result']
         {% endif %}
         {% endfor %}

@@ -45,3 +45,20 @@ class TestBase(TestcaseMixin):
 
         result = eval(expression)
         return result
+
+    def get_assert_data(self, assertion_expression, res, act_data, assert_type):
+        assert_data = {}
+        expression = ''
+        if assert_type == 'json':
+            assertion_list = assertion_expression.split(' ')
+            assert_data['expect_expression'] = assertion_list[0]
+            for index, ass in enumerate(assertion_list):
+                assertion_list[index] = str(self.replace_formal_str_2_act(ass, act_data))
+            assertion_list[0] = str(jsonpath(res, assertion_list[0])[0])
+            expression = ' '.join(assertion_list)
+
+            assert_data['expect'] = assertion_list[-1]
+            assert_data['actual'] = assertion_list[0]
+
+        assert_data['result'] = eval(expression)
+        return assert_data

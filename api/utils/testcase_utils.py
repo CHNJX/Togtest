@@ -63,13 +63,16 @@ def generate_assert_expression(assertions):
             assertion['expression'] = ' '.join(assertion_list)
 
 
-def create_pytest_case(assertions: Assertion, env_instance: Environment, testcase: Testcase, testcase_dir: str):
+def create_pytest_case(assertions: list[Assertion], env_instance: Environment, testcase: Testcase, testcase_dir: str):
     interface_instance = testcase.interface
     # 拿到接口的请求数据
     interface_data = generate_requests_data(interface_instance, env_instance)
     # 转换用例请求参数
     testcase_data_dict = convert_to_dict(testcase.input_data)
     request_data = generate_testcase_request_data(interface_data, testcase_data_dict)
+    # 断言表达式：
+    if not testcase.test_data:
+        generate_assert_expression(assertions)
     # 生成测试用例
     case_file_name = f"{testcase.id}_{str(int(time.time()))}.py"
     testcase_data = {
@@ -86,5 +89,3 @@ def create_pytest_case(assertions: Assertion, env_instance: Environment, testcas
     testcase.case_file_name = f"test_{case_file_name}"
     testcase.save()
     return testcase_file
-
-
